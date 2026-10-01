@@ -9,7 +9,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>../assets/app.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Product>TIDAL Discord Presence</Product>
     <Description>Independent Windows companion for TIDAL and Discord Rich Presence.</Description>
     <Authors>GrantMatas</Authors>

@@ -31,17 +31,16 @@ internal sealed class DiscordRpcClient : IDisposable
                 {
                     type = 2,
                     status_display_type = 2,
-                    details = Limit($"TIDAL • {track.Title}", 128),
+                    details = Limit($"TIDAL • {track.Title} by {track.Artist}", 128),
                     state = Limit(track.IsPlaying
-                        ? $"{track.Artist} • {track.Album}"
-                        : $"Paused • {track.Artist} • {track.Album}", 128),
+                        ? track.Album
+                        : $"Paused • {track.Album}", 128),
                     timestamps = track.IsPlaying && track.StartUnix.HasValue
                         ? new { start = track.StartUnix.Value, end = track.EndUnix }
                         : null,
                     assets = string.IsNullOrWhiteSpace(image) ? null : new
                     {
-                        large_image = image,
-                        large_text = Limit($"{track.Album} — {track.Artist}", 128)
+                        large_image = image
                     },
                     buttons = artwork is null ? null : new[]
                     {

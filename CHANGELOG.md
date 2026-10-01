@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+
+- Include `by <artist>` after the song title.
+- Display the album once on the smaller text line and remove duplicate image text.
+
 ## 1.0.1
 
 - Show `TIDAL • <song title>` in Discord's compact activity status using the Details display mode.
