@@ -1,0 +1,10 @@
+.build-tools/
+**/bin/
+**/obj/
+dist/
+artifacts/
+*.user
+.vs/
+diagnostics*.json
+status.json
+config.json

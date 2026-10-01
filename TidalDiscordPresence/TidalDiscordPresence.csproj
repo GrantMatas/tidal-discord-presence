@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>../assets/app.ico</ApplicationIcon>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <Version>1.0.0</Version>
+    <Product>TIDAL Discord Presence</Product>
+    <Description>Independent Windows companion for TIDAL and Discord Rich Presence.</Description>
+    <Authors>GrantMatas</Authors>
+    <RepositoryUrl>https://github.com/GrantMatas/tidal-discord-presence</RepositoryUrl>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../assets/app.ico" LogicalName="TidalDiscordPresence.AppIcon" />
+    <EmbeddedResource Include="../tools/Uninstall-Helper.ps1" LogicalName="TidalDiscordPresence.UninstallScript" />
+    <InternalsVisibleTo Include="TidalDiscordPresence.Tests" />
+  </ItemGroup>
+</Project>
