@@ -6,6 +6,12 @@ Show what you are listening to in the **TIDAL desktop app** on your Discord prof
 
 [Download the latest release](https://github.com/GrantMatas/tidal-discord-presence/releases/latest) · [Report a problem](https://github.com/GrantMatas/tidal-discord-presence/issues) · [Changelog](CHANGELOG.md)
 
+## Preview
+
+<img src="assets/discord-preview.png" width="440" alt="Discord activity showing TIDAL • Everlong by Foo Fighters, Greatest Hits album artwork, and the playback timer">
+
+TIDAL Discord Presence displaying **Everlong by Foo Fighters**, with album artwork and a playback timer. The song, artist, album, and timer follow your playback.
+
 ## Get started
 
 1. Download **TidalDiscordPresence-1.0.2-win-x64.zip** from Releases and extract it to a permanent folder. The standalone EXE includes .NET; no SDK or runtime install is needed.
