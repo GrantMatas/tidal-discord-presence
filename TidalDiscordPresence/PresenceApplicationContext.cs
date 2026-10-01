@@ -91,6 +91,7 @@ internal sealed class PresenceApplicationContext : ApplicationContext
 
             if (_sharingPaused)
             {
+                _timer.Interval = 2500;
                 _artworkLookup?.Cancel();
                 _currentArtworkKey = null;
                 if (_lastActivityKey is not null)
@@ -105,6 +106,7 @@ internal sealed class PresenceApplicationContext : ApplicationContext
             var track = await _media.GetCurrentTidalTrackAsync().WaitAsync(_shutdown.Token);
             if (track is null)
             {
+                _timer.Interval = 2500;
                 _artworkLookup?.Cancel();
                 _currentArtworkKey = null;
                 if (_lastActivityKey is not null)
@@ -116,7 +118,9 @@ internal sealed class PresenceApplicationContext : ApplicationContext
                 return;
             }
 
+            _timer.Interval = !track.IsPlaying && track.StartUnix.HasValue ? 500 : 2500;
             var key = $"{config.DiscordApplicationId}|{track.Title}|{track.Artist}|{track.Album}|{track.IsPlaying}|{config.ImageAsset}|{config.EnableArtworkLookup}";
+            if (!track.IsPlaying) key += $"|{track.PositionSeconds}";
             var artworkKey = $"{track.Title}|{track.Artist}|{track.Album}|{config.EnableArtworkLookup}";
             if (artworkKey != _currentArtworkKey || (config.EnableArtworkLookup && !_artworkPending &&
                 _currentCover is null && DateTimeOffset.UtcNow >= _nextArtworkRetry))
@@ -135,7 +139,8 @@ internal sealed class PresenceApplicationContext : ApplicationContext
             }
             var seeked = track.StartUnix.HasValue && _lastStartUnix.HasValue &&
                          Math.Abs(track.StartUnix.Value - _lastStartUnix.Value) > 3;
-            if (key != _lastActivityKey || seeked || !_discord.IsConnected || _currentCover?.ImageUrl != _lastCoverUrl ||
+            var pausedTimestampChanged = !track.IsPlaying && track.StartUnix.HasValue && track.StartUnix != _lastStartUnix;
+            if (key != _lastActivityKey || seeked || pausedTimestampChanged || !_discord.IsConnected || _currentCover?.ImageUrl != _lastCoverUrl ||
                 DateTime.UtcNow - _lastUpdate > TimeSpan.FromSeconds(15))
             {
                 var cover = _currentCover;
@@ -185,6 +190,7 @@ internal sealed class PresenceApplicationContext : ApplicationContext
             {
                 updatedUtc = DateTimeOffset.UtcNow,
                 track.Title, track.Artist, track.Album,
+                track.IsPlaying, track.PositionSeconds,
                 artworkSource = cover?.Source ?? "Fallback",
                 requestedImage = cover?.ImageUrl ?? fallbackImage,
                 discordAccepted = true,

@@ -14,7 +14,7 @@ TIDAL Discord Presence displaying **Everlong by Foo Fighters**, with album artwo
 
 ## Get started
 
-1. Download **TidalDiscordPresence-1.0.2-win-x64.zip** from Releases and extract it to a permanent folder. The standalone EXE includes .NET; no SDK or runtime install is needed.
+1. Download **TidalDiscordPresence-1.0.3-win-x64.zip** from Releases and extract it to a permanent folder. The standalone EXE includes .NET; no SDK or runtime install is needed.
 2. Run **TidalDiscordPresence.exe**.
 3. Click **Open Discord Developer Portal** in setup. Create an application named **TIDAL**, open **General Information**, and copy its numeric **Application ID**.
 4. Paste the ID into the app and save. No Discord password, bot token, account token, or client secret is needed.
@@ -28,7 +28,7 @@ The compact Discord activity status uses the current song and artist, for exampl
 
 - Song title, artist, album, and a playback timer when TIDAL supplies a usable timeline.
 - Album artwork, with the TIDAL logo as the default fallback.
-- Paused status when playback is paused; the activity is removed when playback stops.
+- Paused playback keeps refreshing Discord's timer against the song's paused position; the activity is removed when playback stops.
 - Updated timing after seeking and reconnection when Discord restarts.
 - A dedicated icon in the executable, app window, and Windows system tray.
 
@@ -73,7 +73,7 @@ Leave **Fallback image** blank to use the TIDAL logo. Optionally supply a public
 | No album cover | Enable automatic album covers. If no catalog match is available, the TIDAL logo is used. |
 | The app seems to disappear | It runs in the system tray; check the hidden icons. |
 | No song is detected | Use the TIDAL desktop player and confirm Windows media controls show the song. Browser sessions are not selected. |
-| No timer | TIDAL must expose a usable playback timeline. Paused tracks omit the running timer. |
+| No timer | TIDAL must expose a usable playback timeline. While paused, timestamp updates are requested once per second to keep the displayed time at the paused position. Discord controls rendering and update delivery, so the timer may briefly tick between refreshes. |
 | Startup stopped working after moving the EXE | Open the new copy and save Settings again. |
 | Windows asks about an unknown publisher | The release is unsigned. Download from this repository, or build from source. |
 

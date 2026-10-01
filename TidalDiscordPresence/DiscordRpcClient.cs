@@ -35,7 +35,7 @@ internal sealed class DiscordRpcClient : IDisposable
                     state = Limit(track.IsPlaying
                         ? track.Album
                         : $"Paused • {track.Album}", 128),
-                    timestamps = track.IsPlaying && track.StartUnix.HasValue
+                    timestamps = track.StartUnix.HasValue
                         ? new { start = track.StartUnix.Value, end = track.EndUnix }
                         : null,
                     assets = string.IsNullOrWhiteSpace(image) ? null : new
@@ -50,7 +50,7 @@ internal sealed class DiscordRpcClient : IDisposable
                 }
             },
             nonce = Guid.NewGuid().ToString("N")
-        }, cancellationToken);
+        }, cancellationToken, includeNulls: !track.IsPlaying);
     }
 
     public Task ClearActivityAsync(string applicationId, CancellationToken cancellationToken) =>
@@ -59,16 +59,16 @@ internal sealed class DiscordRpcClient : IDisposable
             cmd = "SET_ACTIVITY",
             args = new { pid = Environment.ProcessId, activity = (object?)null },
             nonce = Guid.NewGuid().ToString("N")
-        }, cancellationToken, clearing: true);
+        }, cancellationToken, includeNulls: true);
 
-    private async Task SendAsync(string applicationId, object payload, CancellationToken cancellationToken, bool clearing = false)
+    private async Task SendAsync(string applicationId, object payload, CancellationToken cancellationToken, bool includeNulls = false)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(8));
         try
         {
             await EnsureConnectedAsync(applicationId, timeout.Token);
-            var data = JsonSerializer.SerializeToUtf8Bytes(payload, clearing ? null : JsonOptions);
+            var data = JsonSerializer.SerializeToUtf8Bytes(payload, includeNulls ? null : JsonOptions);
             using var request = JsonDocument.Parse(data);
             var nonce = request.RootElement.GetProperty("nonce").GetString();
             await WriteFrameAsync(1, data, timeout.Token);

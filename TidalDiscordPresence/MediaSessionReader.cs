@@ -2,7 +2,10 @@ using Windows.Media.Control;
 
 namespace TidalDiscordPresence;
 
-internal sealed record TrackInfo(string Title, string Artist, string Album, bool IsPlaying, long? StartUnix, long? EndUnix);
+internal sealed record TrackInfo(string Title, string Artist, string Album, bool IsPlaying, long? StartUnix, long? EndUnix)
+{
+    public long? PositionSeconds { get; init; }
+}
 
 internal sealed class MediaSessionReader
 {
@@ -26,28 +29,27 @@ internal sealed class MediaSessionReader
         var album = Clean(properties.AlbumTitle, 128);
         long? start = null;
         long? end = null;
+        long? positionSeconds = null;
 
-        if (isPlaying)
+        try
         {
-            try
+            var timeline = session.GetTimelineProperties();
+            var duration = timeline.EndTime - timeline.StartTime;
+            var position = timeline.Position - timeline.StartTime;
+            var age = DateTimeOffset.UtcNow - timeline.LastUpdatedTime;
+            if (isPlaying && age > TimeSpan.Zero && age < TimeSpan.FromDays(1)) position += age;
+            if (duration > TimeSpan.Zero && position > duration) position = duration;
+            if (duration > TimeSpan.Zero && position >= TimeSpan.Zero)
             {
-                var timeline = session.GetTimelineProperties();
-                var duration = timeline.EndTime - timeline.StartTime;
-                var position = timeline.Position - timeline.StartTime;
-                var age = DateTimeOffset.UtcNow - timeline.LastUpdatedTime;
-                if (age > TimeSpan.Zero && age < TimeSpan.FromDays(1)) position += age;
-                if (duration > TimeSpan.Zero && position > duration) position = duration;
-                if (duration > TimeSpan.Zero && position >= TimeSpan.Zero)
-                {
-                    var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                    start = now - (long)position.TotalSeconds;
-                    end = start + (long)duration.TotalSeconds;
-                }
+                positionSeconds = (long)position.TotalSeconds;
+                var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                start = now - positionSeconds.Value;
+                end = start + (long)duration.TotalSeconds;
             }
-            catch { }
         }
+        catch { }
 
-        return new TrackInfo(title, artist, album, isPlaying, start, end);
+        return new TrackInfo(title, artist, album, isPlaying, start, end) { PositionSeconds = positionSeconds };
     }
 
     private static string Clean(string? value, int maxLength)

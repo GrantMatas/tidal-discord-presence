@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3
+
+- Read the playback position while paused without advancing it with wall-clock time.
+- Rebase Discord's timestamps against the paused position once per second, then restore normal timing on resume.
+- Update the paused position when seeking while paused.
+
 ## 1.0.2
 
 - Include `by <artist>` after the song title.
