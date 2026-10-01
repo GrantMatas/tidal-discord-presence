@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Show `TIDAL • <song title>` in Discord's compact activity status using the Details display mode.
+- Limit the displayed song details to Discord's 128-character field limit.
+
 ## 1.0.0
 
 - Windows tray companion with an embedded EXE, window, and tray icon.
