@@ -10,23 +10,23 @@ Show what you are listening to in the **TIDAL desktop app** on your Discord prof
 
 <img src="assets/discord-preview.png" width="440" alt="Discord activity showing TIDAL • Everlong by Foo Fighters, Greatest Hits album artwork, and the playback timer">
 
-TIDAL Discord Presence displaying **Everlong by Foo Fighters**, with album artwork and a playback timer. The song, artist, album, and timer follow your playback.
+TIDAL Discord Presence displaying **Everlong by Foo Fighters**, with album artwork and a playback timer. This screenshot shows the earlier layout; version 1.0.4 displays the song title above the artist.
 
 ## Get started
 
-1. Download **TidalDiscordPresence-1.0.3-win-x64.zip** from Releases and extract it to a permanent folder. The standalone EXE includes .NET; no SDK or runtime install is needed.
+1. Download **TidalDiscordPresence-1.0.4-win-x64.zip** from Releases and extract it to a permanent folder. The standalone EXE includes .NET; no SDK or runtime install is needed.
 2. Run **TidalDiscordPresence.exe**.
 3. Click **Open Discord Developer Portal** in setup. Create an application named **TIDAL**, open **General Information**, and copy its numeric **Application ID**.
 4. Paste the ID into the app and save. No Discord password, bot token, account token, or client secret is needed.
 5. Keep the **Discord desktop app** open and play a song in the **TIDAL desktop app**. Enable activity sharing under Discord's **Activity Privacy** settings.
 
-The compact Discord activity status uses the current song and artist, for example **Listening to TIDAL • Before I Forget by Slipknot**, and updates when the song changes. The expanded card shows the album once on the smaller text line. Discord supplies the “Listening to” prefix. The expanded activity card's app name comes from your Developer Portal application; name it TIDAL. You only need to set this up once.
+The compact Discord activity status uses the artist, for example **Listening to Slipknot**, and updates when the song changes. The expanded card shows the song title above the artist, alongside the album artwork and playback timer. While paused, the title is marked **Paused** and the artist stays in the compact status. Discord supplies the “Listening to” prefix, colors, and card styling. The expanded activity card's app name comes from your Developer Portal application; name it TIDAL. You only need to set this up once.
 
 <img src="assets/settings.png" width="500" alt="Setup window with Discord Application ID, album artwork, Windows startup, and diagnostics options">
 
 ## What it shows
 
-- Song title, artist, album, and a playback timer when TIDAL supplies a usable timeline.
+- Song title, artist, and a playback timer when TIDAL supplies a usable timeline.
 - Album artwork, with the TIDAL logo as the default fallback.
 - Paused playback keeps refreshing Discord's timer against the song's paused position; the activity is removed when playback stops.
 - Updated timing after seeking and reconnection when Discord restarts.

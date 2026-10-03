@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+- Show the song title above the artist, with album artwork and the playback timer.
+- Use the artist for Discord's compact activity status.
+- Keep the artist status while paused and mark the song title as paused.
+
 ## 1.0.3
 
 - Read the playback position while paused without advancing it with wall-clock time.

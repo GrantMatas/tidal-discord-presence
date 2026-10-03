@@ -30,11 +30,9 @@ internal sealed class DiscordRpcClient : IDisposable
                 activity = new
                 {
                     type = 2,
-                    status_display_type = 2,
-                    details = Limit($"TIDAL • {track.Title} by {track.Artist}", 128),
-                    state = Limit(track.IsPlaying
-                        ? track.Album
-                        : $"Paused • {track.Album}", 128),
+                    status_display_type = 1,
+                    details = Limit(track.IsPlaying ? track.Title : $"Paused • {track.Title}", 128),
+                    state = Limit(track.Artist, 128),
                     timestamps = track.StartUnix.HasValue
                         ? new { start = track.StartUnix.Value, end = track.EndUnix }
                         : null,

@@ -6,7 +6,7 @@ internal static class AppBrand
 {
     public const string Name = "TIDAL Discord Presence";
     public const string RepositoryUrl = "https://github.com/GrantMatas/tidal-discord-presence";
-    public const string Version = "1.0.3";
+    public const string Version = "1.0.4";
     public static readonly Icon Icon = LoadIcon();
 
     private static Icon LoadIcon()
