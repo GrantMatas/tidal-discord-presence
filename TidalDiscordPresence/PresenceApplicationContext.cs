@@ -7,10 +7,17 @@ internal sealed class PresenceApplicationContext : ApplicationContext
     private readonly NotifyIcon _tray;
     private readonly ToolStripMenuItem _statusItem;
     private readonly ToolStripMenuItem _artworkStatus;
+    private readonly ToolStripMenuItem _lyricsStatus;
     private readonly System.Windows.Forms.Timer _timer;
     private readonly MediaSessionReader _media = new();
     private readonly ArtworkResolver _artwork = new();
     private readonly DiscordRpcClient _discord = new();
+    private readonly LyricsResolver _lyrics = new();
+    private LyricTimeline _lyricTimeline = new();
+    private string? _lyricsKey;
+    private CancellationTokenSource? _lyricsLookup;
+    private DateTimeOffset _nextLyricsRetry;
+    private bool _lyricsPending;
     private readonly SemaphoreSlim _updateGate = new(1, 1);
     private readonly CancellationTokenSource _shutdown = new();
     private string? _lastActivityKey;
@@ -33,6 +40,8 @@ internal sealed class PresenceApplicationContext : ApplicationContext
         menu.Items.Add(_statusItem);
         _artworkStatus = new ToolStripMenuItem("Artwork: TIDAL logo") { Enabled = false };
         menu.Items.Add(_artworkStatus);
+        _lyricsStatus = new ToolStripMenuItem("Lyrics: off") { Enabled = false };
+        menu.Items.Add(_lyricsStatus);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Settings", null, (_, _) => ShowSettings());
         var pauseSharing = new ToolStripMenuItem("Pause sharing") { CheckOnClick = true };
@@ -119,7 +128,23 @@ internal sealed class PresenceApplicationContext : ApplicationContext
             }
 
             _timer.Interval = !track.IsPlaying && track.StartUnix.HasValue ? 500 : 2500;
-            var key = $"{config.DiscordApplicationId}|{track.Title}|{track.Artist}|{track.Album}|{track.IsPlaying}|{config.ImageAsset}|{config.EnableArtworkLookup}";
+            var lyricsKey = $"{track.Title}|{track.Artist}|{track.Album}|{track.EndUnix - track.StartUnix}|{config.EnableLyricsLookup}";
+            if (lyricsKey != _lyricsKey || (config.EnableLyricsLookup && !_lyricsPending && _lyricTimeline.Count == 0 && DateTimeOffset.UtcNow >= _nextLyricsRetry))
+            {
+                _lyricsLookup?.Cancel(); _lyricsLookup?.Dispose();
+                _lyricsKey = lyricsKey; _lyricTimeline = new(); _lyricsPending = config.EnableLyricsLookup;
+                _nextLyricsRetry = DateTimeOffset.UtcNow.AddMinutes(5);
+                if (config.EnableLyricsLookup)
+                {
+                    _lyricsLookup = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
+                    _ = ResolveLyricsAsync(track, lyricsKey, _lyricsLookup.Token);
+                }
+            }
+            var lyric = config.EnableLyricsLookup && track.PositionSeconds.HasValue && track.IsPlaying
+                ? _lyricTimeline.At(track.PositionSeconds.Value * 1000 + config.LyricOffsetMs) : "";
+            _lyricsStatus.Text = !config.EnableLyricsLookup ? "Lyrics: off" : _lyricsPending ? "Lyrics: finding timed lyrics…"
+                : _lyricTimeline.Count == 0 ? "Lyrics: no timed lyrics available; retrying later" : "Lyrics: LRCLIB";
+            var key = $"{config.DiscordApplicationId}|{track.Title}|{track.Artist}|{track.Album}|{track.IsPlaying}|{config.ImageAsset}|{config.EnableArtworkLookup}|{config.DetailsField}|{config.StateField}|{config.StatusDisplayType}|{config.ActivityType}|{lyric}";
             if (!track.IsPlaying) key += $"|{track.PositionSeconds}";
             var artworkKey = $"{track.Title}|{track.Artist}|{track.Album}|{config.EnableArtworkLookup}";
             if (artworkKey != _currentArtworkKey || (config.EnableArtworkLookup && !_artworkPending &&
@@ -140,11 +165,12 @@ internal sealed class PresenceApplicationContext : ApplicationContext
             var seeked = track.StartUnix.HasValue && _lastStartUnix.HasValue &&
                          Math.Abs(track.StartUnix.Value - _lastStartUnix.Value) > 3;
             var pausedTimestampChanged = !track.IsPlaying && track.StartUnix.HasValue && track.StartUnix != _lastStartUnix;
-            if (key != _lastActivityKey || seeked || pausedTimestampChanged || !_discord.IsConnected || _currentCover?.ImageUrl != _lastCoverUrl ||
-                DateTime.UtcNow - _lastUpdate > TimeSpan.FromSeconds(15))
+            if ((DateTime.UtcNow - _lastUpdate >= TimeSpan.FromSeconds(5) || !_discord.IsConnected || !track.IsPlaying) &&
+                (key != _lastActivityKey || seeked || pausedTimestampChanged || !_discord.IsConnected || _currentCover?.ImageUrl != _lastCoverUrl ||
+                DateTime.UtcNow - _lastUpdate > TimeSpan.FromSeconds(15)))
             {
                 var cover = _currentCover;
-                await _discord.SetActivityAsync(config.DiscordApplicationId, track, config.ImageAsset, cover, _shutdown.Token);
+                await _discord.SetActivityAsync(config.DiscordApplicationId, track, config.ImageAsset, cover, _shutdown.Token, config, lyric);
                 _artworkStatus.Text = _artworkPending ? "Artwork: finding cover…" : cover is null ? "Artwork: fallback image" :
                     $"Artwork: {cover.Source}{(cover.AlbumMatches ? "" : " (alternate release)")}";
                 if (config.EnableDiagnostics) SaveArtworkStatus(track, cover, config.ImageAsset);
@@ -161,6 +187,19 @@ internal sealed class PresenceApplicationContext : ApplicationContext
             SetStatus(ex is OperationCanceledException ? "Connection timed out; retrying…" : ex.Message);
         }
         finally { _updateGate.Release(); }
+    }
+
+    private async Task ResolveLyricsAsync(TrackInfo track, string key, CancellationToken token)
+    {
+        try
+        {
+            var timeline = await _lyrics.FindAsync(track, token);
+            if (token.IsCancellationRequested || _closing || key != _lyricsKey) return;
+            _lyricTimeline = timeline;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception) { /* Keep the song activity; retry missing lyrics after the cooldown. */ }
+        finally { if (key == _lyricsKey) _lyricsPending = false; }
     }
 
     private async Task ResolveArtworkAsync(TrackInfo track, string key, CancellationToken token)
@@ -213,6 +252,8 @@ internal sealed class PresenceApplicationContext : ApplicationContext
         _timer.Stop();
         _timer.Dispose();
         _shutdown.Cancel();
+        _lyricsLookup?.Cancel();
+        _lyrics.Dispose();
         _artworkLookup?.Cancel();
         _tray.Visible = false;
         _tray.Dispose();

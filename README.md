@@ -1,5 +1,17 @@
 # TIDAL Discord Presence
 
+## 1.1.0: lyrics and layout controls
+
+Upgrading the executable keeps your existing `%APPDATA%\TidalDiscordPresence\config.json`, including the saved Discord application ID. No bot token, new Discord application, TIDAL developer ID, or lyrics API key is needed for an already configured installation.
+
+Open **Settings** from the tray icon, enable **Find synchronized lyrics on LRCLIB**, and choose **Current lyric** for either profile line. Select **State line** or **Details line** under **Text beside your Discord name** to show that line in the compact status. You can also choose song title, artist, album, song plus artist, or nothing; select Listening, Playing, or Watching; and adjust lyric timing by up to 15 seconds. The settings preview shows the arrangement. Save to apply.
+
+Lyrics lookup is optional and sends song title, artist, album and duration to [LRCLIB](https://lrclib.net/docs), an external lyrics platform requiring no API credentials. Missing, unsynced, and unavailable lyrics are handled without inventing timing; the tray menu reports availability. Song changes and seeks select the corresponding timed line, while paused playback displays **Paused** instead of a stale lyric. Discord updates are coalesced to at most every five seconds during playback, so short lines may be skipped. Discord controls final placement and may prioritize an existing custom status.
+
+Offline tests cover timed lyric parsing, blank lines, repeated timestamps, offsets, backward seeking, field selection, API requests with no credentials, rate-limit cooldown, and preservation of the existing Discord ID. Actual LRCLIB lookup for your current song and lyric display on a live Discord profile have not been verified in this update. Your existing lyric and artwork lookup preferences are preserved; lyrics default to off until enabled in Settings.
+
+References: [Discord activity display fields](https://docs.discord.com/developers/events/gateway-events#activity-object), [LRCLIB API](https://lrclib.net/docs).
+
 <img src="assets/app.png" width="88" height="88" alt="TIDAL Discord Presence icon">
 
 Show what you are listening to in the **TIDAL desktop app** on your Discord profile. A small Windows tray companion with song details, a playback timer, album covers, and automatic reconnects.
@@ -14,7 +26,7 @@ TIDAL Discord Presence displaying **Everlong by Foo Fighters**, with album artwo
 
 ## Get started
 
-1. Download **TidalDiscordPresence-1.0.4-win-x64.zip** from Releases and extract it to a permanent folder. The standalone EXE includes .NET; no SDK or runtime install is needed.
+1. Download **TidalDiscordPresence-1.1.0-win-x64.zip** from Releases and extract it to a permanent folder. The standalone EXE includes .NET; no SDK or runtime install is needed.
 2. Run **TidalDiscordPresence.exe**.
 3. Click **Open Discord Developer Portal** in setup. Create an application named **TIDAL**, open **General Information**, and copy its numeric **Application ID**.
 4. Paste the ID into the app and save. No Discord password, bot token, account token, or client secret is needed.

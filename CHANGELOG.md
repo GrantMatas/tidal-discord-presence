@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0
+
+- Add optional timed lyrics from LRCLIB without a developer account or API key.
+- Choose lyrics, title, artist, album, song plus artist, or no text for either Discord profile line.
+- Choose which field appears beside the Discord username and select Listening, Playing, or Watching.
+- Add lyric timing adjustment and a settings layout preview.
+- Preserve the saved Discord application ID and existing layout when upgrading.
+- Handle missing lyrics and service rate limits; coalesce playing activity updates to at most every five seconds.
+- Add offline regression checks for lyric timing, field selection, service responses, rate-limit cooldown and configuration preservation.
+
+Live current-song lyrics lookup and display on a real Discord profile have not been verified in this release. Short lyric lines may be skipped because of the update interval.
+
 ## 1.0.4
 
 - Show the song title above the artist, with album artwork and the playback timer.

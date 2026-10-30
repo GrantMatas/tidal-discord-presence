@@ -38,6 +38,8 @@ internal static class Program
             ("Remixes do not match the original recording", RejectRemix),
             ("Non-image responses are rejected", RejectHtml),
             ("Configuration migration and atomic save preserve settings", Config),
+            ("Timed lyrics and configurable presence fields", Lyrics),
+            ("Lyrics provider lookup and rate-limit cooldown", LyricsProvider),
             ("Embedded app icon loads and startup paths are quoted", IconAndStartup)
             ,("Uninstaller only accepts owned files inside the app folder", UninstallPaths)
         };
@@ -140,9 +142,37 @@ internal static class Program
             Require(saved.StartWithWindows && saved.DiscordApplicationId == config.DiscordApplicationId, "Atomic save lost settings.");
             Require(!File.Exists(AppConfig.ConfigPath + ".tmp"), "Temporary configuration file was left behind.");
             Require(!saved.EnableDiagnostics, "Diagnostics must be disabled by default.");
+            Require(!saved.EnableLyricsLookup && saved.DetailsField == "Song title" && saved.StateField == "Artist", "Existing presence layout changed on migration.");
+            config.EnableLyricsLookup = true; config.StateField = "Current lyric"; config.LyricOffsetMs = 1200; config.Save();
+            var lyricsConfig = AppConfig.Load();
+            Require(lyricsConfig.DiscordApplicationId == saved.DiscordApplicationId && lyricsConfig.EnableLyricsLookup && lyricsConfig.StateField == "Current lyric" && lyricsConfig.LyricOffsetMs == 1200, "Lyrics settings did not preserve saved Discord identity.");
         }
         finally { AppConfig.TestDirectory = null; }
         return Task.CompletedTask;
+    }
+
+    private static Task Lyrics()
+    {
+        var timeline = LyricTimeline.Parse("[offset:100]\n[00:01.5]First\n[00:03][00:06]Repeated\n[00:04.00]\n[00:99.00]Invalid");
+        Require(timeline.Count == 4 && timeline.At(1399) == "" && timeline.At(1400) == "First" && timeline.At(2900) == "Repeated" && timeline.At(3900) == "" && timeline.At(5900) == "Repeated" && timeline.At(1500) == "First", "LRC timing, blank lines or seeking failed.");
+        Require(PresenceText.Select("Current lyric", Track, "Example line") == "Example line" && PresenceText.Select("Song + artist", Track, null) == "Freak on a Leash · Korn" && PresenceText.Select("None", Track, null) == "", "Custom field selection failed.");
+        Require(PresenceText.Select("Current lyric", Track with { IsPlaying = false }, "Old line") == "Paused", "Paused playback published stale lyrics.");
+        return Task.CompletedTask;
+    }
+
+    private static async Task LyricsProvider()
+    {
+        using var resolver = new LyricsResolver(new Handler(request =>
+        {
+            Require(request.RequestUri!.Host == "lrclib.net" && request.RequestUri.Query.Contains("track_name=") && request.Headers.UserAgent.ToString().Contains("TidalDiscordPresence"), "Lyrics request has no metadata or client identity.");
+            Require(request.Headers.Authorization is null, "Lyrics lookup requires no credentials.");
+            return Json("{\"syncedLyrics\":\"[00:01.00]Example line\"}");
+        }));
+        Require((await resolver.FindAsync(Track, CancellationToken.None)).At(1000) == "Example line", "Lyrics response parsing failed.");
+        var requests = 0;
+        using var busy = new LyricsResolver(new Handler(_ => { requests++; var r = new HttpResponseMessage(HttpStatusCode.TooManyRequests); r.Headers.RetryAfter = new(TimeSpan.FromMinutes(1)); return r; }));
+        for (var i = 0; i < 2; i++) try { await busy.FindAsync(Track, CancellationToken.None); } catch (HttpRequestException) { }
+        Require(requests == 1, "Lyrics Retry-After was ignored.");
     }
 
     private static Task IconAndStartup()

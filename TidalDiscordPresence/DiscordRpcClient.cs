@@ -18,9 +18,10 @@ internal sealed class DiscordRpcClient : IDisposable
     public JsonElement? LastActivityResponse { get; private set; }
 
     public Task SetActivityAsync(string applicationId, TrackInfo track, string fallbackImage,
-        ArtworkMatch? artwork, CancellationToken cancellationToken)
+        ArtworkMatch? artwork, CancellationToken cancellationToken, AppConfig? layout = null, string? lyric = null)
     {
         var image = artwork?.ImageUrl ?? fallbackImage;
+        layout ??= new AppConfig();
         return SendAsync(applicationId, new
         {
             cmd = "SET_ACTIVITY",
@@ -29,10 +30,10 @@ internal sealed class DiscordRpcClient : IDisposable
                 pid = Environment.ProcessId,
                 activity = new
                 {
-                    type = 2,
-                    status_display_type = 1,
-                    details = Limit(track.IsPlaying ? track.Title : $"Paused • {track.Title}", 128),
-                    state = Limit(track.Artist, 128),
+                    type = layout.ActivityType,
+                    status_display_type = layout.StatusDisplayType,
+                    details = Limit(PresenceText.Select(layout.DetailsField, track, lyric), 128),
+                    state = Limit(PresenceText.Select(layout.StateField, track, lyric), 128),
                     timestamps = track.StartUnix.HasValue
                         ? new { start = track.StartUnix.Value, end = track.EndUnix }
                         : null,
@@ -168,8 +169,14 @@ internal sealed class DiscordRpcClient : IDisposable
         }
     }
 
-    private static string Limit(string value, int maxLength) =>
-        value.Length > maxLength ? value[..(maxLength - 1)] + "…" : value;
+    private static string? Limit(string value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (value.Length <= maxLength) return value;
+        var length = maxLength - 1;
+        if (char.IsHighSurrogate(value[length - 1])) length--;
+        return value[..length] + "…";
+    }
 
     private void DisposePipe()
     {

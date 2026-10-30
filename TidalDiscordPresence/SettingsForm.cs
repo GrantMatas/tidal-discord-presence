@@ -42,12 +42,14 @@ internal sealed class SettingsForm : Form
         header.Controls.Add(new PictureBox { Image = AppBrand.Icon.ToBitmap(), SizeMode = PictureBoxSizeMode.Zoom, Size = new Size(48, 48), Margin = new Padding(0, 0, 14, 0) });
         header.Controls.Add(new Label { Text = "TIDAL Discord Presence", AutoSize = true, Font = new Font("Segoe UI Semibold", 17), Margin = new Padding(0, 7, 0, 0) });
         Add(header, 16);
-        Add(LabelFor("Show your TIDAL music on Discord. Create a Discord application named TIDAL, then paste its Application ID here."), 8);
+        Add(LabelFor(string.IsNullOrWhiteSpace(config.DiscordApplicationId)
+            ? "Show your TIDAL music on Discord. Add your Discord application below. Lyrics use LRCLIB and need no developer account."
+            : "Your saved Discord setup is ready and will be reused. Lyrics come from LRCLIB; no music developer ID, key or account is needed."), 8);
         var portal = new LinkLabel { Text = "Open Discord Developer Portal", AutoSize = true, LinkColor = Color.FromArgb(0, 111, 127) };
         portal.LinkClicked += (_, _) => OpenLink("https://discord.com/developers/applications");
         Add(portal, 16);
 
-        Add(LabelFor("Discord Application ID", true), 5);
+        Add(LabelFor(string.IsNullOrWhiteSpace(config.DiscordApplicationId) ? "Discord Application ID" : "Saved Discord Application ID (already configured)", true), 5);
         var id = new TextBox { Text = config.DiscordApplicationId, PlaceholderText = "Paste the numeric Application ID", Width = 548 };
         Add(id, 14);
 
@@ -62,6 +64,32 @@ internal sealed class SettingsForm : Form
         var artwork = new CheckBox { Text = "Find album covers automatically", Checked = config.EnableArtworkLookup, AutoSize = true };
         Add(artwork, 5);
         Add(LabelFor("Uses Apple, Deezer, and MusicBrainz / Cover Art Archive. When enabled, song metadata is sent to those services. No music account credentials are needed."), 12);
+        var lyrics = new CheckBox { Text = "Find synchronized lyrics on LRCLIB (no API key)", Checked = config.EnableLyricsLookup, AutoSize = true };
+        Add(lyrics, 5);
+        Add(LabelFor("When enabled, song title, artist, album and duration are sent to LRCLIB. Only timed lyrics are used. Discord updates at most every five seconds, so short lines may be skipped."), 12);
+        ComboBox Choice(string label, string[] options, string selected)
+        {
+            Add(LabelFor(label, true), 5);
+            var choice = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 548 };
+            choice.Items.AddRange(options); choice.SelectedItem = selected; Add(choice, 12); return choice;
+        }
+        var details = Choice("Top profile line (Details)", PresenceText.Fields, config.DetailsField);
+        var state = Choice("Second profile line (State)", PresenceText.Fields, config.StateField);
+        string[] displayOptions = ["Application name", "State line", "Details line"];
+        var display = Choice("Text beside your Discord name", displayOptions, displayOptions[config.StatusDisplayType]);
+        var activity = Choice("Activity type", ["Listening", "Playing", "Watching"], config.ActivityType == 0 ? "Playing" : config.ActivityType == 3 ? "Watching" : "Listening");
+        Add(LabelFor("Lyric timing adjustment in seconds (positive = earlier)", true), 5);
+        var offset = new NumericUpDown { Minimum = -15, Maximum = 15, DecimalPlaces = 1, Increment = .1M, Value = config.LyricOffsetMs / 1000M, Width = 100 };
+        Add(offset, 12);
+        var preview = LabelFor(""); Add(preview, 14);
+        void Preview()
+        {
+            var sample = new TrackInfo("Song title", "Artist", "Album", true, null, null);
+            var d = PresenceText.Select(details.Text, sample, "Current lyric line");
+            var s = PresenceText.Select(state.Text, sample, "Current lyric line");
+            preview.Text = $"Beside name: {(display.SelectedIndex == 1 ? s : display.SelectedIndex == 2 ? d : "Application name")}\nProfile: {d} | {s}";
+        }
+        details.SelectedIndexChanged += (_, _) => Preview(); state.SelectedIndexChanged += (_, _) => Preview(); display.SelectedIndexChanged += (_, _) => Preview(); Preview();
         var startup = new CheckBox { Text = "Start with Windows, directly in the system tray", Checked = config.StartWithWindows, AutoSize = true };
         Add(startup, 10);
         var diagnostics = new CheckBox { Text = "Enable local diagnostics for troubleshooting", Checked = config.EnableDiagnostics, AutoSize = true };
@@ -96,6 +124,12 @@ internal sealed class SettingsForm : Form
             config.EnableArtworkLookup = artwork.Checked;
             config.StartWithWindows = startup.Checked;
             config.EnableDiagnostics = diagnostics.Checked;
+            config.EnableLyricsLookup = lyrics.Checked;
+            config.DetailsField = details.Text;
+            config.StateField = state.Text;
+            config.StatusDisplayType = display.SelectedIndex;
+            config.ActivityType = activity.SelectedIndex == 1 ? 0 : activity.SelectedIndex == 2 ? 3 : 2;
+            config.LyricOffsetMs = (int)(offset.Value * 1000);
             try
             {
                 StartupRegistration.SetEnabled(config.StartWithWindows);
